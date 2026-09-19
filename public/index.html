@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Billionaire Chess</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="menu-screen">
+    <div class="menu-container">
+      <div class="logo-area">
+        <div class="logo-icon">♟</div>
+        <h1>Billionaire Chess</h1>
+        <p class="subtitle">The ultimate tech titan showdown</p>
+      </div>
+
+      <div class="menu-actions">
+        <button id="btn-local" class="btn btn-primary">
+          <span class="btn-label">Play Local</span>
+          <span class="btn-desc">Same device, two players</span>
+        </button>
+        <button id="btn-online" class="btn btn-primary">
+          <span class="btn-label">Play Online</span>
+          <span class="btn-desc">Same network multiplayer</span>
+        </button>
+      </div>
+
+      <div id="online-menu" class="online-menu hidden">
+        <button id="btn-create-room" class="btn btn-secondary">
+          <span class="btn-label">Create Room</span>
+          <span class="btn-desc">Get a code to share</span>
+        </button>
+        <button id="btn-join-room" class="btn btn-secondary">
+          <span class="btn-label">Join Room</span>
+          <span class="btn-desc">Enter a friend's code</span>
+        </button>
+        <button id="btn-back" class="btn btn-ghost">Back</button>
+      </div>
+
+      <div id="room-join-form" class="room-form hidden">
+        <div class="input-group">
+          <label>Room Code</label>
+          <input type="text" id="room-code" placeholder="ABCD12" maxlength="6" autocomplete="off" spellcheck="false" autocapitalize="characters" autocorrect="off" inputmode="text" enterkeyhint="go">
+        </div>
+        <div class="form-actions">
+          <button id="btn-join" class="btn btn-primary btn-wide">Join Game</button>
+          <button id="btn-back2" class="btn btn-ghost">Back</button>
+        </div>
+      </div>
+
+      <div id="waiting-screen" class="waiting-screen hidden">
+        <div class="spinner"></div>
+        <p class="waiting-title">Waiting for opponent</p>
+        <p class="waiting-sub">Share this code with a friend</p>
+        <div class="room-code-display" id="room-code-display">------</div>
+        <button id="btn-copy-code" class="btn btn-secondary btn-wide">Copy Code</button>
+        <button id="btn-cancel-wait" class="btn btn-ghost">Cancel</button>
+      </div>
+
+      <div class="team-roster" id="team-roster">
+        <div class="deck-selector">
+          <label>Choose Deck</label>
+          <div class="deck-options" id="deck-options">
+            <button class="deck-option active" data-deck="silicon-valley">
+              <span class="deck-icon">💻</span>
+              <span class="deck-name">Silicon Valley</span>
+            </button>
+            <button class="deck-option" data-deck="politicians">
+              <span class="deck-icon">🏛️</span>
+              <span class="deck-name">World Leaders</span>
+            </button>
+            <button class="deck-option" data-deck="actors">
+              <span class="deck-icon">🎬</span>
+              <span class="deck-name">Hollywood</span>
+            </button>
+            <button class="deck-option" data-deck="musicians">
+              <span class="deck-icon">🎵</span>
+              <span class="deck-name">Music</span>
+            </button>
+          </div>
+        </div>
+        <div class="roster-content" id="roster-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-screen" class="hidden">
+    <header id="game-header">
+      <div class="player-bar" id="player-black">
+        <div class="player-avatar black-avatar"></div>
+        <div class="player-meta">
+          <span class="player-name">Black</span>
+          <span class="captured-pieces" id="captured-black"></span>
+        </div>
+        <div class="turn-dot" id="dot-black"></div>
+      </div>
+      <div class="status-pill" id="game-status">White's Turn</div>
+      <div class="player-bar" id="player-white">
+        <div class="turn-dot active" id="dot-white"></div>
+        <div class="player-meta">
+          <span class="player-name">White</span>
+          <span class="captured-pieces" id="captured-white"></span>
+        </div>
+        <div class="player-avatar white-avatar"></div>
+      </div>
+    </header>
+
+    <main id="chess-container">
+      <div id="stage-label" class="stage-label"></div>
+      <canvas id="chess-canvas"></canvas>
+    </main>
+
+    <footer id="game-footer">
+      <button id="btn-rotate" class="ctrl-btn" title="Rotate board" aria-label="Rotate board">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      </button>
+      <button id="btn-reset-view" class="ctrl-btn" title="Recenter view" aria-label="Recenter view">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8V4h4M21 8V4h-4M3 16v4h4M21 16v4h-4"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <button id="btn-undo" class="ctrl-btn" title="Undo move" aria-label="Undo move">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 0 1 0 10H9M3 10l4-4M3 10l4 4"/></svg>
+      </button>
+      <button id="btn-sound" class="ctrl-btn" title="Sound" aria-label="Mute sound">
+        <svg class="icon-sound-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <svg class="icon-sound-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M16 9l5 6M21 9l-5 6"/></svg>
+      </button>
+      <button id="btn-menu" class="ctrl-btn" title="Back to menu" aria-label="Back to menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </footer>
+  </div>
+
+  <div id="game-over-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-icon">🏆</div>
+      <h2 id="winner-text">Checkmate!</h2>
+      <p id="winner-detail"></p>
+      <button id="btn-new-game" class="btn btn-primary btn-wide">Play Again</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/decks.js"></script>
+  <script src="js/board-themes.js"></script>
+  <script src="js/portraits.js"></script>
+  <script src="js/sounds.js"></script>
+  <script src="js/chess3d.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
