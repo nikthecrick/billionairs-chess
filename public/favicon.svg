@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Billionaire Chess pawn">
+  <defs>
+    <linearGradient id="pawn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b9bcc4"/>
+    </linearGradient>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38f2cf"/>
+      <stop offset="1" stop-color="#8f6bff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0b0b10"/>
+  <circle cx="32" cy="17" r="8" fill="url(#pawn)"/>
+  <path d="M25 25h14l3 9c1.2 4.2-1.8 7-1.8 11H23.8c0-4-3-6.8-1.8-11l3-9Z" fill="url(#pawn)"/>
+  <rect x="14" y="47" width="36" height="8" rx="4" fill="url(#base)"/>
+</svg>
