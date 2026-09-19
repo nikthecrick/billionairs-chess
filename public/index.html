@@ -86,6 +86,15 @@
             </button>
           </div>
         </div>
+        <div class="time-control">
+          <label>Time Control</label>
+          <div class="time-options" id="time-options">
+            <button class="time-option" data-enabled="false" data-minutes="0" data-increment="0">Untimed</button>
+            <button class="time-option" data-enabled="true" data-minutes="3" data-increment="0">3 + 0</button>
+            <button class="time-option active" data-enabled="true" data-minutes="10" data-increment="5">10 + 5</button>
+            <button class="time-option" data-enabled="true" data-minutes="15" data-increment="10">15 + 10</button>
+          </div>
+        </div>
         <div class="roster-content" id="roster-content"></div>
       </div>
     </div>
@@ -97,6 +106,7 @@
         <div class="player-avatar black-avatar"></div>
         <div class="player-meta">
           <span class="player-name">Black</span>
+          <span class="player-clock" id="clock-black">--:--</span>
           <span class="captured-pieces" id="captured-black"></span>
         </div>
         <div class="turn-dot" id="dot-black"></div>
@@ -106,6 +116,7 @@
         <div class="turn-dot active" id="dot-white"></div>
         <div class="player-meta">
           <span class="player-name">White</span>
+          <span class="player-clock" id="clock-white">--:--</span>
           <span class="captured-pieces" id="captured-white"></span>
         </div>
         <div class="player-avatar white-avatar"></div>

@@ -2,6 +2,10 @@
 
 A browser-based 3D chess game with local play and online rooms. The Node.js server serves the static game and handles WebSocket multiplayer.
 
+## Time controls
+
+Before starting a game, choose **Untimed**, **3 + 0**, **10 + 5**, or **15 + 10**. Clocks run in local and online games; online clocks are synchronized to the server and a timeout ends the game.
+
 ## Deploy to Render
 
 This repository includes `render.yaml`, so Render can create the service from the blueprint.

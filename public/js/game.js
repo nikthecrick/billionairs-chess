@@ -16,9 +16,18 @@ class ChessGame {
     this.gameOver = false;
     this.soundEnabled = true;
     this.selectedDeck = 'silicon-valley';
+    this.timeControl = { enabled: true, minutes: 10, increment: 5 };
+    this.clock = null;
+    this.clockTimer = null;
+    this.clockSyncOffset = 0;
+    this.clockTimeoutClaimed = false;
+    this.pendingClock = null;
+    this.pendingMoves = [];
+    this.gameGeneration = 0;
 
     this.setupMenu();
     this.setupDeckSelector();
+    this.setupTimeControls();
     this.renderRoster();
   }
 
@@ -34,6 +43,21 @@ class ChessGame {
         this.renderRoster();
         this.updateGameAvatars();
         this.updateStageLabel();
+      });
+    });
+  }
+
+  setupTimeControls() {
+    document.querySelectorAll('.time-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.chessSounds.playButton();
+        document.querySelectorAll('.time-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.timeControl = {
+          enabled: btn.dataset.enabled === 'true',
+          minutes: Number(btn.dataset.minutes || 0),
+          increment: Number(btn.dataset.increment || 0)
+        };
       });
     });
   }
@@ -71,6 +95,155 @@ class ChessGame {
     const label = document.getElementById('stage-label');
     if (!label) return;
     label.textContent = getBoardTheme(this.selectedDeck).name;
+  }
+
+  createTimeControl() {
+    return {
+      enabled: this.timeControl.enabled,
+      minutes: this.timeControl.minutes,
+      increment: this.timeControl.increment
+    };
+  }
+
+  startLocalClock() {
+    this.stopClock();
+    this.pendingClock = null;
+    if (!this.timeControl.enabled) {
+      this.clock = null;
+      this.renderClock();
+      return;
+    }
+
+    const initialMs = this.timeControl.minutes * 60000;
+    const now = Date.now();
+    this.clock = {
+      enabled: true,
+      whiteMs: initialMs,
+      blackMs: initialMs,
+      incrementMs: this.timeControl.increment * 1000,
+      activeColor: 'white',
+      lastMoveAt: now
+    };
+    this.clockSyncOffset = 0;
+    this.clockTimeoutClaimed = false;
+    this.startClockTicker();
+    this.renderClock();
+  }
+
+  startClockFromServer(clock) {
+    this.stopClock();
+    this.pendingClock = null;
+    if (!clock?.enabled) {
+      this.clock = null;
+      this.renderClock();
+      return;
+    }
+
+    const serverNow = Number(clock.serverNow || Date.now());
+    this.clock = {
+      enabled: true,
+      whiteMs: Number(clock.whiteMs),
+      blackMs: Number(clock.blackMs),
+      incrementMs: Number(clock.incrementMs || 0),
+      activeColor: clock.activeColor || 'white',
+      lastMoveAt: Number(clock.lastMoveAt || serverNow)
+    };
+    this.clockSyncOffset = Date.now() - serverNow;
+    this.clockTimeoutClaimed = false;
+    this.startClockTicker();
+    this.renderClock();
+  }
+
+  startClockTicker() {
+    this.stopClock();
+    this.clockTimer = window.setInterval(() => this.renderClock(), 100);
+  }
+
+  stopClock() {
+    if (this.clockTimer) clearInterval(this.clockTimer);
+    this.clockTimer = null;
+  }
+
+  getClockRemaining(color) {
+    if (!this.clock) return Infinity;
+    const now = Date.now() - this.clockSyncOffset;
+    const elapsed = Math.max(0, now - this.clock.lastMoveAt);
+    return Math.max(0, this.clock[`${color}Ms`] - elapsed);
+  }
+
+  renderClock() {
+    const whiteEl = document.getElementById('clock-white');
+    const blackEl = document.getElementById('clock-black');
+    if (!whiteEl || !blackEl) return;
+
+    if (!this.clock) {
+      whiteEl.textContent = '--:--';
+      blackEl.textContent = '--:--';
+      whiteEl.classList.remove('low', 'critical');
+      blackEl.classList.remove('low', 'critical');
+      return;
+    }
+
+    const activeRemaining = this.getClockRemaining(this.clock.activeColor);
+    const whiteRemaining = this.clock.activeColor === 'white' ? activeRemaining : this.clock.whiteMs;
+    const blackRemaining = this.clock.activeColor === 'black' ? activeRemaining : this.clock.blackMs;
+    this.setClockElement(whiteEl, whiteRemaining);
+    this.setClockElement(blackEl, blackRemaining);
+
+    if (activeRemaining <= 0) {
+      if (this.mode === 'local') {
+        this.finishByTimeout(this.clock.activeColor);
+      } else if (typeof WebSocket !== 'undefined' && this.ws?.readyState === WebSocket.OPEN && !this.clockTimeoutClaimed) {
+        this.clockTimeoutClaimed = true;
+        this.ws.send(JSON.stringify({ type: 'claim_timeout' }));
+      }
+    }
+  }
+
+  setClockElement(element, ms) {
+    element.textContent = this.formatClock(ms);
+    element.classList.toggle('low', ms <= 20000 && ms > 5000);
+    element.classList.toggle('critical', ms <= 5000);
+  }
+
+  formatClock(ms) {
+    const totalTenths = Math.max(0, Math.ceil(ms / 100));
+    const minutes = Math.floor(totalTenths / 600);
+    const seconds = Math.floor((totalTenths % 600) / 10);
+    const tenths = totalTenths % 10;
+    const base = `${minutes}:${String(seconds).padStart(2, '0')}`;
+    return minutes > 0 ? base : `${base}.${tenths}`;
+  }
+
+  tickLocalClock(color) {
+    if (!this.clock) return true;
+    const now = Date.now();
+    const elapsed = now - this.clock.lastMoveAt;
+    const remaining = this.clock[`${color}Ms`] - elapsed;
+    if (remaining <= 0) {
+      this.finishByTimeout(color);
+      return false;
+    }
+
+    this.clock[`${color}Ms`] = remaining + this.clock.incrementMs;
+    this.clock.activeColor = color === 'white' ? 'black' : 'white';
+    this.clock.lastMoveAt = now;
+    this.renderClock();
+    return true;
+  }
+
+  finishByTimeout(color) {
+    if (this.gameOver) return;
+    this.gameOver = true;
+    this.stopClock();
+    const winner = color === 'white' ? 'black' : 'white';
+    const loser = color === 'white' ? 'White' : 'Black';
+    const winnerName = color === 'white' ? 'Black' : 'White';
+    this.showGameOver(
+      `${winnerName} Wins`,
+      `${loser} ran out of time.`,
+      this.mode === 'online' && this.myColor === winner ? 'victory' : 'defeat'
+    );
   }
 
   setupMenu() {
@@ -212,6 +385,8 @@ class ChessGame {
   // the board when starting another game (e.g. after changing the deck);
   // only the scene contents are rebuilt per game.
   async initChess3D() {
+    this.piecesReady = false;
+    const generation = ++this.gameGeneration;
     if (this.chess3d) {
       this.chess3d.dispose();
       this.chess3d = null;
@@ -220,7 +395,11 @@ class ChessGame {
     this.updateStageLabel();
     this.chess3d = new Chess3D(document.getElementById('chess-canvas'), this.selectedDeck);
     await this.chess3d.createPieces();
+    if (generation !== this.gameGeneration || this.gameOver) return;
     this.piecesReady = true;
+    if (this.mode === 'local') this.startLocalClock();
+    else if (this.pendingClock) this.startClockFromServer(this.pendingClock);
+    this.flushPendingMoves();
   }
 
   enterGameScreen() {
@@ -254,11 +433,25 @@ class ChessGame {
   }
 
   createRoom() {
-    this.ws = new WebSocket(this.socketUrl());
+    if (this.ws) this.ws.close();
+    const socket = new WebSocket(this.socketUrl());
+    this.ws = socket;
 
-    this.ws.onopen = () => this.ws.send(JSON.stringify({ type: 'create_room' }));
-    this.ws.onmessage = (event) => this.handleWebSocketMessage(JSON.parse(event.data));
-    this.ws.onclose = () => {
+    socket.onopen = () => {
+      if (this.ws !== socket) {
+        socket.close();
+        return;
+      }
+      if (socket.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify({
+        type: 'create_room',
+        timeControl: this.createTimeControl()
+      }));
+    };
+    socket.onmessage = (event) => this.handleWebSocketMessage(JSON.parse(event.data));
+    socket.onclose = () => {
+      if (this.ws !== socket) return;
+      this.ws = null;
       if (document.getElementById('waiting-screen').classList.contains('hidden')) return;
       document.getElementById('waiting-screen').classList.add('hidden');
       document.querySelector('.menu-actions').classList.remove('hidden');
@@ -280,11 +473,23 @@ class ChessGame {
       return;
     }
 
-    this.ws = new WebSocket(this.socketUrl());
+    if (this.ws) this.ws.close();
+    const socket = new WebSocket(this.socketUrl());
+    this.ws = socket;
 
-    this.ws.onopen = () => this.ws.send(JSON.stringify({ type: 'join_room', roomId: code }));
-    this.ws.onmessage = (event) => this.handleWebSocketMessage(JSON.parse(event.data));
-    this.ws.onerror = () => window.chessSounds.playError();
+    socket.onopen = () => {
+      if (this.ws !== socket || socket.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify({ type: 'join_room', roomId: code }));
+    };
+    socket.onmessage = (event) => this.handleWebSocketMessage(JSON.parse(event.data));
+    socket.onerror = () => window.chessSounds.playError();
+    socket.onclose = () => {
+      if (this.ws !== socket) return;
+      this.ws = null;
+      document.getElementById('room-join-form').classList.remove('hidden');
+      document.getElementById('waiting-screen').classList.add('hidden');
+      document.querySelector('.menu-actions').classList.remove('hidden');
+    };
 
     document.getElementById('room-join-form').classList.add('hidden');
     document.getElementById('waiting-screen').classList.remove('hidden');
@@ -308,6 +513,9 @@ class ChessGame {
         this.roomId = msg.roomId;
         this.state = msg.state;
         this.currentTurn = msg.state?.currentTurn || 'white';
+        this.pendingClock = msg.clock || (msg.state?.clock
+          ? { ...msg.state.clock, serverNow: Date.now() }
+          : null);
         this.gameOver = false;
         this.moveHistory = [];
         this.selectedSquare = null;
@@ -325,28 +533,32 @@ class ChessGame {
       }
 
       case 'move_made': {
-        this.state = msg.state;
-        this.currentTurn = msg.currentTurn;
-        this.clearSelection();
-
-        if (this.chess3d) {
-          this.chess3d.movePiece(msg.from[0], msg.from[1], msg.to[0], msg.to[1]);
-          if (msg.piece) this.chess3d.setPieceType(msg.to[0], msg.to[1], msg.piece.type);
-          this.chess3d.clearHighlights();
-          this.chess3d.highlightSquare(msg.from[0], msg.from[1], 0xffaa00);
-          this.chess3d.highlightSquare(msg.to[0], msg.to[1], 0x00aaff);
+        if (!this.piecesReady || !this.chess3d || this.gameOver) {
+          this.pendingMoves.push(msg);
+          break;
         }
+        this.applyMoveMessage(msg);
+        break;
+      }
 
-        if (msg.captured) {
-          window.chessSounds.playCapture();
-          window.chessHaptics.capture();
+      case 'game_over': {
+        this.gameGeneration++;
+        this.pendingMoves = [];
+        this.pendingClock = null;
+        this.stopClock();
+        this.state = msg.state || this.state;
+        if (msg.winner) {
+          const winnerName = msg.winner === 'white' ? 'White' : 'Black';
+          const loserName = msg.winner === 'white' ? 'Black' : 'White';
+          const detail = msg.reason === 'timeout' ? `${loserName} ran out of time.` : 'Game over.';
+          this.showGameOver(
+            `${winnerName} Wins`,
+            detail,
+            this.mode === 'online' && this.myColor === msg.winner ? 'victory' : 'defeat'
+          );
         } else {
-          window.chessSounds.playMove();
-          window.chessHaptics.move();
+          this.showGameOver('Game Over', msg.detail || 'The game is over.');
         }
-
-        this.updateUI();
-        this.checkGameOver();
         break;
       }
 
@@ -361,6 +573,41 @@ class ChessGame {
         this.showGameOver('Opponent Left', 'Your opponent disconnected from the game.');
         break;
     }
+  }
+
+  applyMoveMessage(msg) {
+    this.state = msg.state;
+    this.currentTurn = msg.currentTurn;
+    if (msg.clock) this.startClockFromServer(msg.clock);
+    else if (msg.state?.clock) {
+      this.startClockFromServer({ ...msg.state.clock, serverNow: Date.now() });
+    }
+    this.clearSelection();
+
+    if (this.chess3d) {
+      this.chess3d.movePiece(msg.from[0], msg.from[1], msg.to[0], msg.to[1]);
+      if (msg.piece) this.chess3d.setPieceType(msg.to[0], msg.to[1], msg.piece.type);
+      this.chess3d.clearHighlights();
+      this.chess3d.highlightSquare(msg.from[0], msg.from[1], 0xffaa00);
+      this.chess3d.highlightSquare(msg.to[0], msg.to[1], 0x00aaff);
+    }
+
+    if (msg.captured) {
+      window.chessSounds.playCapture();
+      window.chessHaptics.capture();
+    } else {
+      window.chessSounds.playMove();
+      window.chessHaptics.move();
+    }
+
+    this.updateUI();
+    this.checkGameOver();
+  }
+
+  flushPendingMoves() {
+    const moves = this.pendingMoves.splice(0);
+    if (this.gameOver || !this.piecesReady || !this.chess3d) return;
+    moves.forEach(msg => this.applyMoveMessage(msg));
   }
 
   generateInitialState() {
@@ -386,6 +633,10 @@ class ChessGame {
 
   canInteract() {
     if (!this.piecesReady || this.gameOver || !this.state) return false;
+    if (this.mode === 'local' && this.clock && this.getClockRemaining(this.currentTurn) <= 0) {
+      this.finishByTimeout(this.currentTurn);
+      return false;
+    }
     if (this.mode === 'online' && this.myColor !== this.currentTurn) return false;
     return true;
   }
@@ -465,13 +716,17 @@ class ChessGame {
     if (this.mode === 'online') {
       // The server owns the board in online play; applying the move locally
       // first would desync us whenever it rejects the move.
-      this.ws.send(JSON.stringify({ type: 'move', from: [fromRow, fromCol], to: [toRow, toCol] }));
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'move', from: [fromRow, fromCol], to: [toRow, toCol] }));
+      }
       this.clearSelection();
       return;
     }
 
     const target = this.state.board[toRow][toCol];
     const before = { ...piece };  // snapshot before mutation, for undo
+    const clockBefore = this.clock ? { ...this.clock } : null;
+    if (!this.tickLocalClock(piece.color)) return;
 
     if (target) this.state.capturedPieces[piece.color].push(target);
     this.state.board[toRow][toCol] = piece;
@@ -485,7 +740,8 @@ class ChessGame {
       fromRow, fromCol, toRow, toCol,
       piece: before,
       captured: target,
-      promoted
+      promoted,
+      clock: clockBefore
     });
 
     this.chess3d.movePiece(fromRow, fromCol, toRow, toCol);
@@ -579,9 +835,15 @@ class ChessGame {
       this.setStatusFlash('Undo is local-only');
       return;
     }
-    if (this.moveHistory.length === 0 || !this.chess3d) return;
+    if (this.moveHistory.length === 0 || !this.chess3d || this.gameOver) return;
 
     const last = this.moveHistory.pop();
+    if (last.clock) {
+      this.clock = { ...last.clock, lastMoveAt: Date.now() };
+      this.clockTimeoutClaimed = false;
+      this.startClockTicker();
+      this.renderClock();
+    }
     this.state.board[last.fromRow][last.fromCol] = last.piece;
     this.state.board[last.toRow][last.toCol] = last.captured || null;
 
@@ -666,6 +928,7 @@ class ChessGame {
 
   showGameOver(title, detail, outcome = 'victory') {
     this.gameOver = true;
+    this.stopClock();
     this.clearSelection();
     if (outcome === 'defeat') window.chessSounds.playDefeat();
     else window.chessSounds.playGameOver();
@@ -695,6 +958,12 @@ class ChessGame {
     this.moveHistory = [];
     this.selectedSquare = null;
     this.validMoves = [];
+    this.pendingClock = null;
+    this.pendingMoves = [];
+    this.gameGeneration++;
+    this.stopClock();
+    this.clock = null;
+    clearTimeout(this.statusTimer);
   }
 }
 
