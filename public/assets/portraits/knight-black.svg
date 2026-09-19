@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5deb3"/>
+      <stop offset="100%" style="stop-color:#deb887"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#c0c0c0"/>
+      <stop offset="100%" style="stop-color:#a0a0a0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e"/>
+  <rect x="80" y="150" width="40" height="30" fill="url(#skin)"/>
+  <!-- Business casual -->
+  <path d="M65 155 L80 148 L100 162 L120 148 L135 155 L130 180 L70 180 Z" fill="#4285f4"/>
+  <path d="M90 148 L100 162 L110 148" stroke="#3367d6" stroke-width="1" fill="none"/>
+  <!-- Head shape -->
+  <ellipse cx="100" cy="105" rx="42" ry="50" fill="url(#skin)"/>
+  <!-- Hair - white/silver -->
+  <path d="M58 80 Q62 48 100 44 Q138 48 142 80 L140 86 Q136 56 100 52 Q64 56 60 86 Z" fill="url(#hair)"/>
+  <!-- Eyes -->
+  <ellipse cx="80" cy="96" rx="10" ry="7" fill="white"/>
+  <ellipse cx="80" cy="97" rx="5" ry="4.5" fill="#2c3e50"/>
+  <circle cx="79" cy="95" r="1.5" fill="white"/>
+  <ellipse cx="120" cy="96" rx="10" ry="7" fill="white"/>
+  <ellipse cx="120" cy="97" rx="5" ry="4.5" fill="#2c3e50"/>
+  <circle cx="119" cy="95" r="1.5" fill="white"/>
+  <!-- Eyebrows -->
+  <path d="M65 84 Q80 80 92 84" stroke="#a0a0a0" stroke-width="2" fill="none"/>
+  <path d="M108 84 Q120 80 135 84" stroke="#a0a0a0" stroke-width="2" fill="none"/>
+  <!-- Nose -->
+  <path d="M96 100 Q100 112 104 100" stroke="#c9a07a" stroke-width="1.5" fill="none"/>
+  <!-- Mouth -->
+  <path d="M85 122 Q100 128 115 122" stroke="#8b4513" stroke-width="2" fill="none"/>
+  <!-- Horse head for KNIGHT -->
+  <path d="M70 40 Q75 10 90 20 Q95 5 105 20 Q120 10 125 40 Q130 30 135 35 Q125 50 100 45 Q75 50 65 35 Q70 30 70 40 Z" fill="#4285f4" stroke="#3367d6" stroke-width="2"/>
+  <circle cx="85" cy="25" r="2" fill="#1a1a1a"/>
+</svg>

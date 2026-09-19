@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4c9a8"/>
+      <stop offset="100%" style="stop-color:#d4a574"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e"/>
+  <rect x="80" y="150" width="40" height="30" fill="url(#skin)"/>
+  <!-- Leather jacket collar -->
+  <path d="M65 155 L75 145 L100 160 L125 145 L135 155 L130 175 L70 175 Z" fill="#1a1a1a"/>
+  <path d="M70 160 L80 152" stroke="#333" stroke-width="2"/>
+  <path d="M130 160 L120 152" stroke="#333" stroke-width="2"/>
+  <!-- Head shape -->
+  <ellipse cx="100" cy="105" rx="46" ry="54" fill="url(#skin)"/>
+  <!-- Hair - short, dark -->
+  <path d="M54 80 Q58 45 100 40 Q142 45 146 80 L143 88 Q138 55 100 50 Q62 55 57 88 Z" fill="url(#hair)"/>
+  <!-- Eyes - intense look -->
+  <ellipse cx="80" cy="95" rx="10" ry="7" fill="white"/>
+  <ellipse cx="80" cy="96" rx="5" ry="4.5" fill="#1a1a1a"/>
+  <circle cx="79" cy="94" r="1.5" fill="white"/>
+  <ellipse cx="120" cy="95" rx="10" ry="7" fill="white"/>
+  <ellipse cx="120" cy="96" rx="5" ry="4.5" fill="#1a1a1a"/>
+  <circle cx="119" cy="94" r="1.5" fill="white"/>
+  <!-- Eyebrows - angular -->
+  <path d="M65 83 Q80 78 90 83" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+  <path d="M110 83 Q120 78 135 83" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+  <!-- Nose -->
+  <path d="M95 100 Q100 116 105 100" stroke="#c9956a" stroke-width="2" fill="none"/>
+  <!-- Mouth - confident smile -->
+  <path d="M82 126 Q100 135 118 126" stroke="#8b4513" stroke-width="2.5" fill="none"/>
+  <!-- Beard stubble -->
+  <path d="M75 135 Q100 148 125 135" fill="#1a1a1a" opacity="0.15"/>
+  <!-- Tiara for QUEEN -->
+  <path d="M65 35 L75 15 L85 30 L100 5 L115 30 L125 15 L135 35 Z" fill="#e91e63" stroke="#c2185b" stroke-width="1"/>
+  <circle cx="75" cy="22" r="3" fill="#ffd700"/>
+  <circle cx="100" cy="12" r="4" fill="#ffd700"/>
+  <circle cx="125" cy="22" r="3" fill="#ffd700"/>
+</svg>

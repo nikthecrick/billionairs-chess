@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5deb3"/>
+      <stop offset="100%" style="stop-color:#deb887"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#808080"/>
+      <stop offset="100%" style="stop-color:#606060"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e"/>
+  <rect x="80" y="150" width="40" height="30" fill="url(#skin)"/>
+  <!-- Turtle neck -->
+  <path d="M68 155 L80 148 L100 160 L120 148 L132 155 L128 180 L72 180 Z" fill="#1a1a1a"/>
+  <rect x="78" y="155" width="44" height="18" fill="#1a1a1a"/>
+  <!-- Head shape -->
+  <ellipse cx="100" cy="105" rx="42" ry="50" fill="url(#skin)"/>
+  <!-- Hair - gray/silver -->
+  <path d="M58 80 Q62 48 100 44 Q138 48 142 80 L140 86 Q136 56 100 52 Q64 56 60 86 Z" fill="url(#hair)"/>
+  <!-- Glasses - rectangular -->
+  <rect x="62" y="88" width="28" height="20" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
+  <rect x="110" y="88" width="28" height="20" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
+  <line x1="90" y1="98" x2="110" y2="98" stroke="#333" stroke-width="2"/>
+  <!-- Eyes -->
+  <ellipse cx="76" cy="98" rx="5" ry="4" fill="white"/>
+  <circle cx="76" cy="98" r="3" fill="#2c3e50"/>
+  <circle cx="75" cy="97" r="1" fill="white"/>
+  <ellipse cx="124" cy="98" rx="5" ry="4" fill="white"/>
+  <circle cx="124" cy="98" r="3" fill="#2c3e50"/>
+  <circle cx="123" cy="97" r="1" fill="white"/>
+  <!-- Eyebrows -->
+  <path d="M62 84 Q76 80 88 84" stroke="#606060" stroke-width="2" fill="none"/>
+  <path d="M112 84 Q124 80 138 84" stroke="#606060" stroke-width="2" fill="none"/>
+  <!-- Nose -->
+  <path d="M96 100 Q100 112 104 100" stroke="#c9a07a" stroke-width="1.5" fill="none"/>
+  <!-- Mouth -->
+  <path d="M85 122 Q100 128 115 122" stroke="#8b4513" stroke-width="2" fill="none"/>
+  <!-- Bishop hat -->
+  <path d="M80 30 Q100 5 120 30" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+  <ellipse cx="100" cy="30" rx="22" ry="6" fill="#e74c3c"/>
+  <line x1="100" y1="10" x2="100" y2="25" stroke="#ffd700" stroke-width="2"/>
+  <circle cx="100" cy="8" r="4" fill="#ffd700"/>
+</svg>

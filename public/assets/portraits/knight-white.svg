@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4c9a8"/>
+      <stop offset="100%" style="stop-color:#d4a574"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e"/>
+  <rect x="80" y="150" width="40" height="30" fill="url(#skin)"/>
+  <!-- Casual shirt -->
+  <path d="M65 155 L80 148 L100 162 L120 148 L135 155 L130 180 L70 180 Z" fill="#ff9900"/>
+  <path d="M90 148 L100 162 L110 148" stroke="#e68a00" stroke-width="1" fill="none"/>
+  <!-- Head shape - longer face -->
+  <ellipse cx="100" cy="105" rx="40" ry="53" fill="url(#skin)"/>
+  <!-- Hair - short, slightly balding -->
+  <path d="M60 78 Q65 48 100 44 Q135 48 140 78 L138 85 Q134 58 100 54 Q66 58 62 85 Z" fill="url(#hair)"/>
+  <!-- Bald spot hint -->
+  <ellipse cx="100" cy="52" rx="15" ry="8" fill="#d4a574" opacity="0.3"/>
+  <!-- Eyes - deep set -->
+  <ellipse cx="82" cy="96" rx="9" ry="6" fill="white"/>
+  <ellipse cx="82" cy="97" rx="4.5" ry="4" fill="#2c3e50"/>
+  <circle cx="81" cy="95" r="1.5" fill="white"/>
+  <ellipse cx="118" cy="96" rx="9" ry="6" fill="white"/>
+  <ellipse cx="118" cy="97" rx="4.5" ry="4" fill="#2c3e50"/>
+  <circle cx="117" cy="95" r="1.5" fill="white"/>
+  <!-- Eyebrows - expressive -->
+  <path d="M68 84 Q82 78 94 84" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+  <path d="M106 84 Q118 78 132 84" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+  <!-- Nose - prominent -->
+  <path d="M94 98 Q100 118 106 98" stroke="#c9956a" stroke-width="2" fill="none"/>
+  <!-- Mouth - wide smile -->
+  <path d="M78 128 Q100 140 122 128" stroke="#8b4513" stroke-width="2.5" fill="none"/>
+  <!-- Teeth showing -->
+  <path d="M82 130 Q100 138 118 130" fill="white" opacity="0.8"/>
+  <!-- Horse head for KNIGHT -->
+  <path d="M70 40 Q75 10 90 20 Q95 5 105 20 Q120 10 125 40 Q130 30 135 35 Q125 50 100 45 Q75 50 65 35 Q70 30 70 40 Z" fill="#ff9900" stroke="#e68a00" stroke-width="2"/>
+  <circle cx="85" cy="25" r="2" fill="#1a1a1a"/>
+</svg>

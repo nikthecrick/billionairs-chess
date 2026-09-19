@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5deb3"/>
+      <stop offset="100%" style="stop-color:#deb887"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#0a0a0a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e"/>
+  <rect x="80" y="150" width="40" height="30" fill="url(#skin)"/>
+  <!-- Business suit -->
+  <path d="M60 155 L80 145 L100 160 L120 145 L140 155 L135 180 L65 180 Z" fill="#2c3e50"/>
+  <path d="M100 160 L100 180" stroke="#e74c3c" stroke-width="2"/>
+  <ellipse cx="100" cy="155" rx="4" ry="3" fill="#f1c40f"/>
+  <!-- Head shape -->
+  <ellipse cx="100" cy="105" rx="44" ry="52" fill="url(#skin)"/>
+  <!-- Hair - short -->
+  <path d="M56 80 Q60 48 100 44 Q140 48 144 80 L142 86 Q138 56 100 52 Q62 56 58 86 Z" fill="url(#hair)"/>
+  <!-- Eyes -->
+  <ellipse cx="80" cy="96" rx="10" ry="7" fill="white"/>
+  <ellipse cx="80" cy="97" rx="5" ry="4.5" fill="#2c3e50"/>
+  <circle cx="79" cy="95" r="1.5" fill="white"/>
+  <ellipse cx="120" cy="96" rx="10" ry="7" fill="white"/>
+  <ellipse cx="120" cy="97" rx="5" ry="4.5" fill="#2c3e50"/>
+  <circle cx="119" cy="95" r="1.5" fill="white"/>
+  <!-- Eyebrows -->
+  <path d="M65 84 Q80 80 92 84" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+  <path d="M108 84 Q120 80 135 84" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+  <!-- Nose -->
+  <path d="M95 100 Q100 114 105 100" stroke="#c9a07a" stroke-width="2" fill="none"/>
+  <!-- Mouth -->
+  <path d="M82 125 Q100 132 118 125" stroke="#8b4513" stroke-width="2" fill="none"/>
+  <!-- Castle tower for ROOK -->
+  <rect x="75" y="15" width="50" height="30" fill="#e74c3c"/>
+  <rect x="70" y="10" width="10" height="12" fill="#e74c3c"/>
+  <rect x="90" y="10" width="20" height="12" fill="#e74c3c"/>
+  <rect x="120" y="10" width="10" height="12" fill="#e74c3c"/>
+  <rect x="70" y="10" width="10" height="5" fill="#c0392b"/>
+  <rect x="90" y="10" width="20" height="5" fill="#c0392b"/>
+  <rect x="120" y="10" width="10" height="5" fill="#c0392b"/>
+</svg>

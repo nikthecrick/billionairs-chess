@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4c9a8"/>
+      <stop offset="100%" style="stop-color:#d4a574"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c2c2c"/>
+      <stop offset="100%" style="stop-color:#1a1a1a"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e"/>
+  <!-- Neck -->
+  <rect x="80" y="150" width="40" height="30" fill="url(#skin)"/>
+  <!-- Shirt collar -->
+  <path d="M70 160 L80 150 L100 165 L120 150 L130 160 L125 170 L75 170 Z" fill="#1a1a1a"/>
+  <!-- Head shape - wider jaw -->
+  <ellipse cx="100" cy="105" rx="48" ry="55" fill="url(#skin)"/>
+  <!-- Hair - spiky/recognition style -->
+  <path d="M52 85 Q55 40 100 35 Q145 40 148 85 L145 90 Q140 55 100 50 Q60 55 55 90 Z" fill="url(#hair)"/>
+  <!-- Forehead lines -->
+  <path d="M65 68 Q100 62 135 68" stroke="#c9956a" stroke-width="1" fill="none" opacity="0.5"/>
+  <!-- Eyes - distinctive squint -->
+  <ellipse cx="78" cy="95" rx="12" ry="8" fill="white"/>
+  <ellipse cx="78" cy="96" rx="6" ry="5" fill="#1a1a1a"/>
+  <circle cx="76" cy="94" r="1.5" fill="white"/>
+  <ellipse cx="122" cy="95" rx="12" ry="8" fill="white"/>
+  <ellipse cx="122" cy="96" rx="6" ry="5" fill="#1a1a1a"/>
+  <circle cx="120" cy="94" r="1.5" fill="white"/>
+  <!-- Eyebrows - thicker -->
+  <path d="M62 82 Q78 78 92 82" stroke="#2c2c2c" stroke-width="3" fill="none"/>
+  <path d="M108 82 Q122 78 138 82" stroke="#2c2c2c" stroke-width="3" fill="none"/>
+  <!-- Nose -->
+  <path d="M95 100 Q100 118 105 100" stroke="#c9956a" stroke-width="2" fill="none"/>
+  <!-- Mouth - slight smirk -->
+  <path d="M82 128 Q100 138 118 128" stroke="#8b4513" stroke-width="2.5" fill="none"/>
+  <!-- Chin dimple -->
+  <circle cx="100" cy="145" r="3" fill="#c9956a" opacity="0.3"/>
+  <!-- Crown symbol for KING -->
+  <path d="M70 28 L80 15 L90 25 L100 8 L110 25 L120 15 L130 28 Z" fill="#ffd700" stroke="#ffaa00" stroke-width="1"/>
+  <circle cx="80" cy="20" r="3" fill="#ff6b6b"/>
+  <circle cx="100" cy="12" r="3" fill="#4ecdc4"/>
+  <circle cx="120" cy="20" r="3" fill="#ff6b6b"/>
+</svg>
