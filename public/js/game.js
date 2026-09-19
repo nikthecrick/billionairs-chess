@@ -33,6 +33,7 @@ class ChessGame {
         this.selectedDeck = btn.dataset.deck;
         this.renderRoster();
         this.updateGameAvatars();
+        this.updateStageLabel();
       });
     });
   }
@@ -64,6 +65,12 @@ class ChessGame {
     const blackAvatar = document.querySelector('.black-avatar');
     if (whiteAvatar) whiteAvatar.style.backgroundImage = `url('assets/portraits/${deck.white.king.image}')`;
     if (blackAvatar) blackAvatar.style.backgroundImage = `url('assets/portraits/${deck.black.king.image}')`;
+  }
+
+  updateStageLabel() {
+    const label = document.getElementById('stage-label');
+    if (!label) return;
+    label.textContent = getBoardTheme(this.selectedDeck).name;
   }
 
   setupMenu() {
@@ -210,7 +217,8 @@ class ChessGame {
       this.chess3d = null;
     }
 
-    this.chess3d = new Chess3D(document.getElementById('chess-canvas'));
+    this.updateStageLabel();
+    this.chess3d = new Chess3D(document.getElementById('chess-canvas'), this.selectedDeck);
     await this.chess3d.createPieces();
     this.piecesReady = true;
   }

@@ -32,9 +32,11 @@ function getSharedRenderer(canvas) {
 }
 
 class Chess3D {
-  constructor(canvas) {
+  constructor(canvas, deckId = 'silicon-valley') {
     this.canvas = canvas;
     this.disposed = false;
+    this.deckId = deckId;
+    this.theme = getBoardTheme(deckId);
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
@@ -46,6 +48,11 @@ class Chess3D {
     this.board = [];
     this.pieces = [];
     this.textures = {};
+    this.stageTexture = null;
+    this.stageBoardTexture = null;
+    this.boardBase = null;
+    this.stageGroup = null;
+    this.floorMesh = null;
     this.geometryCache = {};
     this.validMoveMeshes = [];
     this.lastMoveMeshes = [];
@@ -77,13 +84,13 @@ class Chess3D {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    this.scene.background = new THREE.Color(0x0a0a0a);
-    this.scene.fog = new THREE.Fog(0x0a0a0a, 22, 60);
+    this.scene.background = new THREE.Color(this.theme.background);
+    this.scene.fog = new THREE.Fog(this.theme.fog, 22, 60);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(this.theme.ambient, this.theme.ambientIntensity);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(this.theme.directional, this.theme.directionalIntensity);
     directionalLight.position.set(10, 20, 10);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
@@ -96,15 +103,30 @@ class Chess3D {
     directionalLight.shadow.camera.bottom = -15;
     this.scene.add(directionalLight);
 
-    const pointLight = new THREE.PointLight(0x4a90d9, 0.4, 25);
+    const pointLight = new THREE.PointLight(this.theme.point, this.theme.pointIntensity, 25);
     pointLight.position.set(-5, 12, 5);
     this.scene.add(pointLight);
+
+    this.stageGroup = new THREE.Group();
+    const floorGeometry = new THREE.PlaneGeometry(40, 40);
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: this.theme.floor,
+      roughness: 0.92,
+      metalness: 0.02
+    });
+    this.floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+    this.floorMesh.rotation.x = -Math.PI / 2;
+    this.floorMesh.position.y = -0.45;
+    this.floorMesh.receiveShadow = true;
+    this.stageGroup.add(this.floorMesh);
+    this.scene.add(this.stageGroup);
 
     this.scene.add(this.boardGroup);
     this.scene.add(this.piecesGroup);
     this.scene.add(this.moveIndicatorGroup);
 
     this.createBoard();
+    this.loadStageTexture();
     this.setupEventListeners();
     this.resize(true);
     this.animate();
@@ -193,10 +215,16 @@ class Chess3D {
 
   createBoard() {
     const boardGeometry = new THREE.BoxGeometry(8.5, 0.3, 8.5);
-    const boardMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1510, roughness: 0.8 });
+    const boardMaterial = new THREE.MeshStandardMaterial({
+      color: this.theme.base,
+      roughness: 0.8,
+      emissive: this.theme.accent,
+      emissiveIntensity: 0.04
+    });
     const boardBase = new THREE.Mesh(boardGeometry, boardMaterial);
     boardBase.position.y = -0.3;
     boardBase.receiveShadow = true;
+    this.boardBase = boardBase;
     this.boardGroup.add(boardBase);
 
     for (let row = 0; row < 8; row++) {
@@ -205,8 +233,8 @@ class Chess3D {
         const isWhite = (row + col) % 2 === 0;
         const geometry = new THREE.BoxGeometry(0.95, 0.15, 0.95);
         const material = new THREE.MeshStandardMaterial({
-          color: isWhite ? 0xe8e4dc : 0x6b7c5e,
-          roughness: 0.7
+          color: isWhite ? this.theme.squareLight : this.theme.squareDark,
+          roughness: this.theme.roughness
         });
 
         const square = new THREE.Mesh(geometry, material);
@@ -218,6 +246,56 @@ class Chess3D {
         this.board[row][col] = square;
       }
     }
+  }
+
+  loadStageTexture() {
+    return new Promise(resolve => {
+      new THREE.TextureLoader().load(
+        this.theme.stage,
+        (texture) => {
+          if (this.disposed) {
+            texture.dispose();
+            resolve();
+            return;
+          }
+
+          texture.encoding = THREE.sRGBEncoding;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.generateMipmaps = false;
+          this.stageTexture = texture;
+          this.scene.background = texture;
+
+          if (this.floorMesh || this.boardBase) {
+            const boardTexture = texture.clone();
+            boardTexture.encoding = THREE.sRGBEncoding;
+            boardTexture.minFilter = THREE.LinearFilter;
+            boardTexture.magFilter = THREE.LinearFilter;
+            boardTexture.generateMipmaps = false;
+            boardTexture.needsUpdate = true;
+            this.stageBoardTexture = boardTexture;
+
+            if (this.floorMesh) {
+              this.floorMesh.material.map = boardTexture;
+              this.floorMesh.material.color.set(0xffffff);
+              this.floorMesh.material.roughness = 0.88;
+              this.floorMesh.material.needsUpdate = true;
+            }
+
+            if (this.boardBase) {
+              this.boardBase.material.map = boardTexture;
+              this.boardBase.material.color.set(0xffffff);
+              this.boardBase.material.roughness = this.theme.roughness;
+              this.boardBase.material.needsUpdate = true;
+            }
+          }
+
+          resolve();
+        },
+        undefined,
+        () => resolve()
+      );
+    });
   }
 
   async loadTextures() {
@@ -762,6 +840,11 @@ class Chess3D {
     });
     Object.values(this.geometryCache).forEach(g => g.dispose());
     this.boardGroup.traverse(obj => { if (obj.isMesh) obj.geometry?.dispose(); });
+    this.stageTexture?.dispose();
+    this.stageBoardTexture?.dispose();
+    this.stageTexture = null;
+    this.stageBoardTexture = null;
+
     Object.values(this.textures).forEach(byName =>
       Object.values(byName).forEach(t => t?.dispose())
     );
