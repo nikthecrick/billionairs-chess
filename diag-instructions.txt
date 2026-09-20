@@ -1,0 +1,8 @@
+Bash steps for diagnostics:
+
+1. cd /Users/test/chess-game
+2. Start local server: PORT=3099 node server.js
+3. For each deck, run: node deck-diag.js <deck>
+4. Read /tmp/diag-<deck>.log
+
+Bash tool should be used for these steps.

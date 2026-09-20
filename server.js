@@ -14,10 +14,38 @@ app.get('/health', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = new Map();
+const clients = new Set();
+const deckIds = new Set(['silicon-valley', 'politicians', 'actors', 'musicians']);
 let waitingPlayer = null;
 
+function normalizeDeckId(deckId) {
+  return deckIds.has(deckId) ? deckId : 'silicon-valley';
+}
+
+function getOpenRooms() {
+  return Array.from(rooms.values())
+    .filter(room => room.open && room.players.white?.readyState === WebSocket.OPEN && !room.players.black)
+    .map(room => ({
+      roomId: room.roomId,
+      deckId: normalizeDeckId(room.deckId),
+      timeControl: room.timeControl,
+      open: true,
+      createdAt: room.createdAt
+    }))
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+function broadcastLobby() {
+  const payload = { type: 'lobby', rooms: getOpenRooms() };
+  clients.forEach(client => send(client, payload));
+}
+
 function generateRoomId() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  let roomId;
+  do {
+    roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+  } while (rooms.has(roomId));
+  return roomId;
 }
 
 function normalizeTimeControl(input) {
@@ -141,7 +169,9 @@ function finishRoom(room, roomId, winner, reason) {
   };
   send(room.players.white, payload);
   send(room.players.black, payload);
+  const wasOpen = room.open;
   rooms.delete(roomId);
+  if (wasOpen) broadcastLobby();
 }
 
 function finishRoomByTimeout(room, roomId, color, reason = 'timeout') {
@@ -281,6 +311,11 @@ function send(client, payload) {
 }
 
 wss.on('connection', (ws) => {
+  clients.add(ws);
+  ws.isAlive = true;
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
   ws.on('error', (err) => console.error('socket error:', err.message));
 
   ws.on('message', (data) => {
@@ -293,7 +328,12 @@ wss.on('connection', (ws) => {
     if (!msg || typeof msg.type !== 'string') return;
 
     switch(msg.type) {
+      case 'get_lobby':
+        send(ws, { type: 'lobby', rooms: getOpenRooms() });
+        break;
+
       case 'create_room': {
+        if (waitingPlayer === ws) waitingPlayer = null;
         if (ws.roomId && rooms.has(ws.roomId)) {
           return send(ws, { type: 'error', message: 'Room already active' });
         }
@@ -301,15 +341,20 @@ wss.on('connection', (ws) => {
         const timeControl = normalizeTimeControl(msg.timeControl);
         const state = createChessState(timeControl);
         const room = {
+          roomId,
           players: { white: ws, black: null },
           state,
           timeControl,
+          open: msg.open === true,
+          deckId: normalizeDeckId(msg.deckId),
+          createdAt: Date.now(),
           started: false
         };
         rooms.set(roomId, room);
         ws.roomId = roomId;
         ws.color = 'white';
-        send(ws, { type: 'room_created', roomId, timeControl });
+        send(ws, { type: 'room_created', roomId, timeControl, deckId: room.deckId });
+        if (room.open) broadcastLobby();
         break;
       }
 
@@ -323,16 +368,18 @@ wss.on('connection', (ws) => {
         }
         if (waitingPlayer && waitingPlayer.readyState === WebSocket.OPEN) {
           const roomId = generateRoomId();
-          const timeControl = normalizeTimeControl(msg.timeControl || {
+          const timeControl = normalizeTimeControl(waitingPlayer.timeControl || msg.timeControl || {
             enabled: true,
             minutes: 10,
             increment: 5
           });
           const state = createChessState(timeControl);
           const room = {
+            roomId,
             players: { white: waitingPlayer, black: ws },
             state,
             timeControl,
+            deckId: normalizeDeckId(waitingPlayer.deckId),
             started: true
           };
           if (state.clock) state.clock.lastMoveAt = Date.now();
@@ -347,6 +394,7 @@ wss.on('connection', (ws) => {
             type: 'game_start',
             color: 'white',
             roomId,
+            deckId: room.deckId,
             timeControl,
             state,
             clock: clockSnapshot(state)
@@ -355,6 +403,7 @@ wss.on('connection', (ws) => {
             type: 'game_start',
             color: 'black',
             roomId,
+            deckId: room.deckId,
             timeControl,
             state,
             clock: clockSnapshot(state)
@@ -364,12 +413,15 @@ wss.on('connection', (ws) => {
           scheduleClockTimeout(room, roomId);
         } else {
           waitingPlayer = ws;
+          ws.deckId = normalizeDeckId(msg.deckId);
+          ws.timeControl = normalizeTimeControl(msg.timeControl);
           send(ws, { type: 'waiting' });
         }
         break;
       }
 
       case 'join_room': {
+        if (waitingPlayer === ws) waitingPlayer = null;
         if (ws.roomId && rooms.has(ws.roomId)) {
           return send(ws, { type: 'error', message: 'Room already active' });
         }
@@ -386,10 +438,12 @@ wss.on('connection', (ws) => {
           send(ws, { type: 'error', message: 'Room not found or full' });
           break;
         }
+        const wasOpen = room.open;
         if (!host || host.readyState !== WebSocket.OPEN) {
           clearClockTimeout(room);
           rooms.delete(roomId);
           send(ws, { type: 'error', message: 'Host is no longer connected' });
+          if (wasOpen) broadcastLobby();
           break;
         }
 
@@ -397,12 +451,14 @@ wss.on('connection', (ws) => {
         ws.roomId = roomId;
         ws.color = 'black';
         room.started = true;
+        room.open = false;
         if (room.state.clock) room.state.clock.lastMoveAt = Date.now();
 
         send(ws, {
           type: 'game_start',
           color: 'black',
           roomId,
+          deckId: room.deckId,
           timeControl: room.timeControl,
           state: room.state,
           clock: clockSnapshot(room.state)
@@ -411,10 +467,12 @@ wss.on('connection', (ws) => {
           type: 'game_start',
           color: 'white',
           roomId,
+          deckId: room.deckId,
           timeControl: room.timeControl,
           state: room.state,
           clock: clockSnapshot(room.state)
         });
+        if (wasOpen) broadcastLobby();
         scheduleClockTimeout(room, roomId);
         break;
       }
@@ -506,16 +564,31 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    clients.delete(ws);
     if (waitingPlayer === ws) waitingPlayer = null;
     const room = rooms.get(ws.roomId);
     if (room) {
+      const wasOpen = room.open;
       const opponent = ws.color === 'white' ? room.players.black : room.players.white;
       send(opponent, { type: 'opponent_disconnected' });
       clearClockTimeout(room);
       rooms.delete(ws.roomId);
+      if (wasOpen) broadcastLobby();
     }
   });
 });
+
+const heartbeat = setInterval(() => {
+  clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      ws.terminate();
+      return;
+    }
+    ws.isAlive = false;
+    if (ws.readyState === WebSocket.OPEN) ws.ping();
+  });
+}, 30000);
+if (heartbeat.unref) heartbeat.unref();
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {

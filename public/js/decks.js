@@ -82,7 +82,9 @@ const DECKS = {
 };
 
 function getDeck(deckId) {
-  return DECKS[deckId] || DECKS['silicon-valley'];
+  return Object.prototype.hasOwnProperty.call(DECKS, deckId)
+    ? DECKS[deckId]
+    : DECKS['silicon-valley'];
 }
 
 function getPieceInfo(deckId, color, pieceType) {

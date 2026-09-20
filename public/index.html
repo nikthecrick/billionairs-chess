@@ -34,8 +34,16 @@
       </div>
 
       <div id="online-menu" class="online-menu hidden">
+        <button id="btn-find-open" class="btn btn-primary">
+          <span class="btn-label">Find Open Game</span>
+          <span class="btn-desc">Join a public lobby</span>
+        </button>
+        <button id="btn-create-open" class="btn btn-secondary">
+          <span class="btn-label">Create Open Game</span>
+          <span class="btn-desc">Wait for anyone to join</span>
+        </button>
         <button id="btn-create-room" class="btn btn-secondary">
-          <span class="btn-label">Create Room</span>
+          <span class="btn-label">Create Private Room</span>
           <span class="btn-desc">Get a code to share</span>
         </button>
         <button id="btn-join-room" class="btn btn-secondary">
@@ -43,6 +51,20 @@
           <span class="btn-desc">Enter a friend's code</span>
         </button>
         <button id="btn-back" class="btn btn-ghost">Back</button>
+      </div>
+
+      <div id="lobby-screen" class="lobby-screen hidden">
+        <div class="lobby-header">
+          <div>
+            <h2>Open Games</h2>
+            <p class="lobby-sub">Join a public game or create one for anyone to find.</p>
+          </div>
+          <button id="btn-refresh-lobby" class="ctrl-btn" title="Refresh open games" aria-label="Refresh open games">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </button>
+        </div>
+        <div id="lobby-list" class="lobby-list"></div>
+        <button id="btn-lobby-back" class="btn btn-ghost">Back</button>
       </div>
 
       <div id="room-join-form" class="room-form hidden">
@@ -59,7 +81,7 @@
       <div id="waiting-screen" class="waiting-screen hidden">
         <div class="spinner"></div>
         <p class="waiting-title">Waiting for opponent</p>
-        <p class="waiting-sub">Share this code with a friend</p>
+        <p class="waiting-sub" id="waiting-sub">Share this code with a friend</p>
         <div class="room-code-display" id="room-code-display">------</div>
         <button id="btn-copy-code" class="btn btn-secondary btn-wide">Copy Code</button>
         <button id="btn-cancel-wait" class="btn btn-ghost">Cancel</button>

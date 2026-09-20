@@ -24,6 +24,15 @@ class ChessGame {
     this.pendingClock = null;
     this.pendingMoves = [];
     this.gameGeneration = 0;
+    this.lobbyOpen = false;
+    this.lobbyRooms = [];
+    this.lobbyError = null;
+    this.openRoomWaiting = false;
+    this.roomCreatePending = false;
+    this.joinPending = false;
+    this.joinFromLobby = false;
+    this.socketRole = null;
+    this.socketGeneration = 0;
 
     this.setupMenu();
     this.setupDeckSelector();
@@ -36,6 +45,7 @@ class ChessGame {
   setupDeckSelector() {
     document.querySelectorAll('.deck-option').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.parentElement.classList.contains('disabled')) return;
         window.chessSounds.playButton();
         document.querySelectorAll('.deck-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -50,6 +60,7 @@ class ChessGame {
   setupTimeControls() {
     document.querySelectorAll('.time-option').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.parentElement.classList.contains('disabled')) return;
         window.chessSounds.playButton();
         document.querySelectorAll('.time-option').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -95,6 +106,93 @@ class ChessGame {
     const label = document.getElementById('stage-label');
     if (!label) return;
     label.textContent = getBoardTheme(this.selectedDeck).name;
+  }
+
+  showMenuPanel(panelId) {
+    ['menu-actions', 'online-menu', 'lobby-screen', 'room-join-form', 'waiting-screen'].forEach((id) => {
+      document.getElementById(id)?.classList.add('hidden');
+    });
+    if (panelId) document.getElementById(panelId)?.classList.remove('hidden');
+  }
+
+  closeSocket() {
+    const socket = this.ws;
+    this.ws = null;
+    this.socketRole = null;
+    this.socketGeneration++;
+    if (socket && socket.readyState !== WebSocket.CLOSED) socket.close();
+  }
+
+  isCurrentSocket(socket, generation) {
+    return this.ws === socket && this.socketGeneration === generation;
+  }
+
+  leaveLobby() {
+    this.lobbyOpen = false;
+    this.lobbyRooms = [];
+    this.lobbyError = null;
+    this.roomCreatePending = false;
+    this.joinPending = false;
+    this.joinFromLobby = false;
+    if (this.socketRole === 'lobby') this.closeSocket();
+    this.setDeckSelectorEnabled(true);
+    this.setTimeControlsEnabled(true);
+    this.hideLobby();
+  }
+
+  normalizeTimeControlValue(input) {
+    if (!input || typeof input !== 'object' || input.enabled !== true) {
+      return { enabled: false, minutes: 0, increment: 0 };
+    }
+    const minutes = Number(input.minutes);
+    const increment = Number(input.increment);
+    if (!Number.isFinite(minutes) || minutes <= 0 || !Number.isFinite(increment) || increment < 0) {
+      return { enabled: false, minutes: 0, increment: 0 };
+    }
+    return {
+      enabled: true,
+      minutes: Math.min(180, Math.max(1, Math.floor(minutes))),
+      increment: Math.min(60, Math.max(0, Math.floor(increment)))
+    };
+  }
+
+  applyDeck(deckId) {
+    const hasDeck = Object.prototype.hasOwnProperty.call(DECKS, deckId);
+    this.selectedDeck = hasDeck ? deckId : 'silicon-valley';
+    const deck = getDeck(this.selectedDeck);
+    document.querySelectorAll('.deck-option').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.deck === this.selectedDeck);
+    });
+    this.renderRoster();
+    this.updateGameAvatars();
+    this.updateStageLabel();
+    if (typeof window.setPortraitDeck === 'function') window.setPortraitDeck(this.selectedDeck);
+  }
+
+  applyTimeControl(timeControl) {
+    const normalized = this.normalizeTimeControlValue(timeControl);
+    this.timeControl = normalized;
+    document.querySelectorAll('.time-option').forEach(btn => {
+      btn.classList.toggle('active',
+        btn.dataset.enabled === String(normalized.enabled) &&
+        Number(btn.dataset.minutes || 0) === normalized.minutes &&
+        Number(btn.dataset.increment || 0) === normalized.increment
+      );
+    });
+  }
+
+  setDeckSelectorEnabled(enabled) {
+    const options = document.getElementById('deck-options');
+    if (!options) return;
+    options.classList.toggle('disabled', !enabled);
+    options.setAttribute('aria-disabled', String(!enabled));
+  }
+
+  setTimeControlsEnabled(enabled) {
+    const options = document.getElementById('time-options');
+    if (!options) return;
+    options.classList.toggle('disabled', !enabled);
+    options.setAttribute('aria-disabled', String(!enabled));
   }
 
   createTimeControl() {
@@ -254,24 +352,38 @@ class ChessGame {
 
     on('btn-local', () => {
       window.chessSounds.playButton();
+      this.closeSocket();
+      this.setDeckSelectorEnabled(true);
+      this.setTimeControlsEnabled(true);
       this.startLocalGame();
     });
 
     on('btn-online', () => {
       window.chessSounds.playButton();
-      document.getElementById('online-menu').classList.remove('hidden');
-      document.querySelector('.menu-actions').classList.add('hidden');
+      this.setDeckSelectorEnabled(true);
+      this.setTimeControlsEnabled(true);
+      this.showMenuPanel('online-menu');
     });
 
     on('btn-create-room', () => {
       window.chessSounds.playButton();
-      this.createRoom();
+      this.createRoom(false);
+    });
+
+    on('btn-create-open', () => {
+      window.chessSounds.playButton();
+      this.createRoom(true);
+    });
+
+    on('btn-find-open', () => {
+      window.chessSounds.playButton();
+      this.showLobby();
     });
 
     on('btn-join-room', () => {
       window.chessSounds.playButton();
-      document.getElementById('room-join-form').classList.remove('hidden');
-      document.getElementById('online-menu').classList.add('hidden');
+      this.leaveLobby();
+      this.showMenuPanel('room-join-form');
       document.getElementById('room-code').focus();
     });
 
@@ -286,14 +398,24 @@ class ChessGame {
 
     on('btn-back', () => {
       window.chessSounds.playButton();
-      document.getElementById('online-menu').classList.add('hidden');
-      document.querySelector('.menu-actions').classList.remove('hidden');
+      this.leaveLobby();
+      this.showMenuPanel('menu-actions');
+    });
+
+    on('btn-refresh-lobby', () => {
+      window.chessSounds.playButton();
+      this.showLobby();
+    });
+
+    on('btn-lobby-back', () => {
+      window.chessSounds.playButton();
+      this.leaveLobby();
+      this.showMenuPanel('online-menu');
     });
 
     on('btn-back2', () => {
       window.chessSounds.playButton();
-      document.getElementById('room-join-form').classList.add('hidden');
-      document.getElementById('online-menu').classList.remove('hidden');
+      this.showMenuPanel('online-menu');
     });
 
     on('btn-copy-code', async () => {
@@ -308,9 +430,14 @@ class ChessGame {
 
     on('btn-cancel-wait', () => {
       window.chessSounds.playButton();
-      if (this.ws) { this.ws.close(); this.ws = null; }
-      document.getElementById('waiting-screen').classList.add('hidden');
-      document.querySelector('.menu-actions').classList.remove('hidden');
+      this.closeSocket();
+      this.openRoomWaiting = false;
+      this.roomCreatePending = false;
+      this.joinPending = false;
+      this.joinFromLobby = false;
+      this.setDeckSelectorEnabled(true);
+      this.setTimeControlsEnabled(true);
+      this.showMenuPanel('online-menu');
     });
 
     on('btn-rotate', () => {
@@ -403,6 +530,7 @@ class ChessGame {
   }
 
   enterGameScreen() {
+    this.showMenuPanel(null);
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     document.body.classList.add('in-game');
@@ -432,82 +560,282 @@ class ChessGame {
     return `${protocol}//${window.location.host}`;
   }
 
-  createRoom() {
-    if (this.ws) this.ws.close();
+  createRoom(open = false) {
+    this.closeSocket();
+    this.lobbyOpen = false;
+    this.joinFromLobby = false;
+    this.openRoomWaiting = false;
+    this.roomCreatePending = true;
+    this.setDeckSelectorEnabled(false);
+    this.setTimeControlsEnabled(false);
+    this.showMenuPanel('waiting-screen');
+
+    const generation = ++this.socketGeneration;
     const socket = new WebSocket(this.socketUrl());
     this.ws = socket;
+    this.socketRole = 'room';
 
     socket.onopen = () => {
-      if (this.ws !== socket) {
+      if (!this.isCurrentSocket(socket, generation)) {
         socket.close();
         return;
       }
       if (socket.readyState !== WebSocket.OPEN) return;
       socket.send(JSON.stringify({
         type: 'create_room',
+        open,
+        deckId: this.selectedDeck,
         timeControl: this.createTimeControl()
       }));
     };
-    socket.onmessage = (event) => this.handleWebSocketMessage(JSON.parse(event.data));
+    socket.onmessage = (event) => {
+      if (!this.isCurrentSocket(socket, generation)) return;
+      this.handleWebSocketMessage(JSON.parse(event.data));
+    };
+    socket.onerror = () => {
+      if (this.isCurrentSocket(socket, generation)) window.chessSounds.playError();
+    };
     socket.onclose = () => {
-      if (this.ws !== socket) return;
+      if (!this.isCurrentSocket(socket, generation)) return;
       this.ws = null;
-      if (document.getElementById('waiting-screen').classList.contains('hidden')) return;
-      document.getElementById('waiting-screen').classList.add('hidden');
-      document.querySelector('.menu-actions').classList.remove('hidden');
+      this.socketRole = null;
+      this.openRoomWaiting = false;
+      this.roomCreatePending = false;
+      this.joinPending = false;
+      if (this.mode === 'online' && this.roomId && !this.gameOver) {
+        this.returnToMenu();
+        return;
+      }
+      this.setDeckSelectorEnabled(true);
+      this.setTimeControlsEnabled(true);
+      if (!document.getElementById('waiting-screen').classList.contains('hidden')) {
+        this.showMenuPanel('online-menu');
+      }
     };
 
-    document.getElementById('online-menu').classList.add('hidden');
-    document.getElementById('waiting-screen').classList.remove('hidden');
+    document.getElementById('waiting-sub').textContent = open
+      ? 'Your game is visible in the open lobby.'
+      : 'Share this code with a friend';
+    document.getElementById('btn-copy-code').classList.toggle('hidden', open);
     document.getElementById('room-code-display').textContent = '...';
+    this.openRoomWaiting = open;
   }
 
-  joinRoom() {
+  joinRoom(roomId = null) {
     const input = document.getElementById('room-code');
-    const code = input.value.toUpperCase().trim();
+    const code = (roomId || input.value).toUpperCase().trim();
     if (code.length < 4) {
       window.chessSounds.playError();
       window.chessHaptics.error();
-      input.style.borderColor = 'var(--red, #ff5a5f)';
-      setTimeout(() => { input.style.borderColor = ''; }, 1500);
+      if (!roomId) {
+        input.style.borderColor = 'var(--red, #ff5a5f)';
+        setTimeout(() => { input.style.borderColor = ''; }, 1500);
+      }
       return;
     }
 
-    if (this.ws) this.ws.close();
+    const fromLobby = this.lobbyOpen;
+    this.closeSocket();
+    this.lobbyOpen = false;
+    this.openRoomWaiting = false;
+    this.roomCreatePending = false;
+    this.joinPending = true;
+    this.joinFromLobby = fromLobby;
+    this.setDeckSelectorEnabled(false);
+    this.setTimeControlsEnabled(false);
+    this.showMenuPanel('waiting-screen');
+
+    const generation = ++this.socketGeneration;
     const socket = new WebSocket(this.socketUrl());
     this.ws = socket;
+    this.socketRole = 'room';
 
     socket.onopen = () => {
-      if (this.ws !== socket || socket.readyState !== WebSocket.OPEN) return;
+      if (!this.isCurrentSocket(socket, generation)) {
+        socket.close();
+        return;
+      }
+      if (socket.readyState !== WebSocket.OPEN) return;
       socket.send(JSON.stringify({ type: 'join_room', roomId: code }));
     };
-    socket.onmessage = (event) => this.handleWebSocketMessage(JSON.parse(event.data));
-    socket.onerror = () => window.chessSounds.playError();
+    socket.onmessage = (event) => {
+      if (!this.isCurrentSocket(socket, generation)) return;
+      this.handleWebSocketMessage(JSON.parse(event.data));
+    };
+    socket.onerror = () => {
+      if (this.isCurrentSocket(socket, generation)) window.chessSounds.playError();
+    };
     socket.onclose = () => {
-      if (this.ws !== socket) return;
+      if (!this.isCurrentSocket(socket, generation)) return;
+      const wasJoinPending = this.joinPending;
+      const wasJoinFromLobby = this.joinFromLobby;
       this.ws = null;
-      document.getElementById('room-join-form').classList.remove('hidden');
-      document.getElementById('waiting-screen').classList.add('hidden');
-      document.querySelector('.menu-actions').classList.remove('hidden');
+      this.socketRole = null;
+      this.joinPending = false;
+      if (this.mode === 'online' && this.roomId && !this.gameOver) {
+        this.returnToMenu();
+        return;
+      }
+      this.setDeckSelectorEnabled(true);
+      this.setTimeControlsEnabled(true);
+      if (wasJoinPending && wasJoinFromLobby) {
+        this.joinFromLobby = false;
+        this.showLobby();
+        return;
+      }
+      if (wasJoinPending) {
+        this.showMenuPanel('room-join-form');
+      }
     };
 
-    document.getElementById('room-join-form').classList.add('hidden');
-    document.getElementById('waiting-screen').classList.remove('hidden');
     document.getElementById('room-code-display').textContent = code;
+  }
+
+  showLobby(connect = true, clearError = true) {
+    this.lobbyOpen = true;
+    this.joinPending = false;
+    this.roomCreatePending = false;
+    this.lobbyRooms = [];
+    if (clearError) this.lobbyError = null;
+    this.setDeckSelectorEnabled(false);
+    this.setTimeControlsEnabled(false);
+    this.showMenuPanel('lobby-screen');
+    this.renderLobby();
+    if (connect) this.ensureLobbySocket();
+  }
+
+  hideLobby() {
+    this.lobbyOpen = false;
+    document.getElementById('lobby-screen').classList.add('hidden');
+  }
+
+  ensureLobbySocket() {
+    if (this.socketRole === 'lobby' && this.ws?.readyState === WebSocket.OPEN) {
+      this.requestLobby();
+      return;
+    }
+    if (this.ws) this.closeSocket();
+
+    const generation = ++this.socketGeneration;
+    const socket = new WebSocket(this.socketUrl());
+    this.ws = socket;
+    this.socketRole = 'lobby';
+
+    socket.onopen = () => {
+      if (!this.isCurrentSocket(socket, generation)) {
+        socket.close();
+        return;
+      }
+      if (!this.lobbyOpen || socket.readyState !== WebSocket.OPEN) return;
+      this.requestLobby();
+    };
+    socket.onmessage = (event) => {
+      if (!this.isCurrentSocket(socket, generation)) return;
+      this.handleWebSocketMessage(JSON.parse(event.data));
+    };
+    socket.onerror = () => {
+      if (this.isCurrentSocket(socket, generation)) window.chessSounds.playError();
+    };
+    socket.onclose = () => {
+      if (!this.isCurrentSocket(socket, generation)) return;
+      this.ws = null;
+      this.socketRole = null;
+      if (!this.lobbyOpen) return;
+      this.lobbyOpen = false;
+      this.lobbyError = 'Connection lost. Return to the menu and try again.';
+      this.showLobby(false, false);
+    };
+  }
+
+  requestLobby() {
+    if (this.socketRole === 'lobby' && this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'get_lobby' }));
+    }
+  }
+
+  renderLobby() {
+    const list = document.getElementById('lobby-list');
+    if (!list) return;
+
+    if (this.lobbyError) {
+      list.innerHTML = `<div class="lobby-empty">${this.escapeHtml(this.lobbyError)}</div>`;
+      return;
+    }
+
+    const rooms = this.lobbyRooms.filter(room => room && room.roomId && room.open === true);
+    if (rooms.length === 0) {
+      list.innerHTML = '<div class="lobby-empty">No open games yet.<br>Create one and let another player join.</div>';
+      return;
+    }
+
+    list.innerHTML = rooms.map(room => {
+      const deck = getDeck(room.deckId);
+      const timeControl = this.formatLobbyTimeControl(room.timeControl);
+      return `<button class="lobby-room" data-room-id="${this.escapeHtml(room.roomId)}">
+        <span class="lobby-room-main">
+          <span class="lobby-room-deck">${this.escapeHtml(deck.name)}</span>
+          <span class="lobby-room-meta">
+            <span>${this.escapeHtml(timeControl)}</span>
+            <span>Public</span>
+          </span>
+        </span>
+        <span class="lobby-room-join">Join</span>
+      </button>`;
+    }).join('');
+
+    list.querySelectorAll('.lobby-room').forEach(button => {
+      button.addEventListener('click', () => {
+        window.chessSounds.playButton();
+        this.joinRoom(button.dataset.roomId);
+      });
+    });
+  }
+
+  formatLobbyTimeControl(timeControl) {
+    const normalized = this.normalizeTimeControlValue(timeControl);
+    if (!normalized.enabled) return 'Untimed';
+    return `${normalized.minutes} + ${normalized.increment}`;
+  }
+
+  escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
   }
 
   handleWebSocketMessage(msg) {
     switch (msg.type) {
+      case 'lobby':
+        if (this.socketRole !== 'lobby') return;
+        this.lobbyRooms = Array.isArray(msg.rooms) ? msg.rooms : [];
+        this.lobbyError = null;
+        this.renderLobby();
+        break;
+
       case 'room_created':
+        if (this.socketRole !== 'room') return;
+        this.roomCreatePending = false;
         this.roomId = msg.roomId;
+        this.applyDeck(msg.deckId);
+        this.applyTimeControl(msg.timeControl);
         document.getElementById('room-code-display').textContent = msg.roomId;
         break;
 
       case 'waiting':
+        if (this.socketRole !== 'room') return;
         document.getElementById('room-code-display').textContent = '...';
         break;
 
       case 'game_start': {
+        if (this.socketRole !== 'room') return;
+        this.lobbyOpen = false;
+        this.openRoomWaiting = false;
+        this.roomCreatePending = false;
+        this.joinPending = false;
+        this.joinFromLobby = false;
+        this.hideLobby();
+        this.applyDeck(msg.deckId);
+        this.applyTimeControl(msg.timeControl);
         this.mode = 'online';
         this.myColor = msg.color;
         this.roomId = msg.roomId;
@@ -516,12 +844,12 @@ class ChessGame {
         this.pendingClock = msg.clock || (msg.state?.clock
           ? { ...msg.state.clock, serverNow: Date.now() }
           : null);
+        this.pendingMoves = [];
         this.gameOver = false;
         this.moveHistory = [];
         this.selectedSquare = null;
         this.validMoves = [];
 
-        document.getElementById('waiting-screen').classList.add('hidden');
         this.enterGameScreen();
 
         this.initChess3D().then(() => {
@@ -533,6 +861,7 @@ class ChessGame {
       }
 
       case 'move_made': {
+        if (this.socketRole !== 'room') return;
         if (!this.piecesReady || !this.chess3d || this.gameOver) {
           this.pendingMoves.push(msg);
           break;
@@ -542,6 +871,7 @@ class ChessGame {
       }
 
       case 'game_over': {
+        if (this.socketRole !== 'room') return;
         this.gameGeneration++;
         this.pendingMoves = [];
         this.pendingClock = null;
@@ -563,14 +893,48 @@ class ChessGame {
       }
 
       case 'error':
-        window.chessSounds.playError();
-        window.chessHaptics.error();
-        this.clearSelection();
-        this.setStatusFlash(msg.message || 'Move rejected');
+        if (this.joinPending && this.joinFromLobby) {
+          this.closeSocket();
+          this.joinPending = false;
+          this.joinFromLobby = false;
+          this.showLobby();
+          break;
+        }
+        if (this.joinPending) {
+          this.closeSocket();
+          this.joinPending = false;
+          this.joinFromLobby = false;
+          this.setDeckSelectorEnabled(true);
+          this.setTimeControlsEnabled(true);
+          this.showMenuPanel('room-join-form');
+          break;
+        }
+        if (this.roomCreatePending) {
+          this.closeSocket();
+          this.roomCreatePending = false;
+          this.openRoomWaiting = false;
+          this.setDeckSelectorEnabled(true);
+          this.setTimeControlsEnabled(true);
+          this.showMenuPanel('online-menu');
+          break;
+        }
+        if (this.lobbyOpen && this.socketRole === 'lobby') {
+          this.lobbyError = msg.message || 'Unable to load open games';
+          this.renderLobby();
+          break;
+        }
+        if (this.socketRole === 'room') {
+          window.chessSounds.playError();
+          window.chessHaptics.error();
+          this.clearSelection();
+          this.setStatusFlash(msg.message || 'Move rejected');
+        }
         break;
 
       case 'opponent_disconnected':
-        this.showGameOver('Opponent Left', 'Your opponent disconnected from the game.');
+        if (this.socketRole === 'room') {
+          this.showGameOver('Opponent Left', 'Your opponent disconnected from the game.');
+        }
         break;
     }
   }
@@ -938,22 +1302,31 @@ class ChessGame {
   }
 
   returnToMenu() {
-    if (this.ws) { this.ws.close(); this.ws = null; }
+    this.closeSocket();
     if (this.chess3d) { this.chess3d.dispose(); this.chess3d = null; }
 
     document.getElementById('game-screen').classList.add('hidden');
     document.getElementById('game-over-modal').classList.add('hidden');
     document.getElementById('menu-screen').classList.remove('hidden');
     document.body.classList.remove('in-game');
+    this.showMenuPanel('menu-actions');
 
-    document.getElementById('online-menu').classList.add('hidden');
-    document.getElementById('room-join-form').classList.add('hidden');
-    document.getElementById('waiting-screen').classList.add('hidden');
-    document.querySelector('.menu-actions').classList.remove('hidden');
+    this.lobbyOpen = false;
+    this.lobbyRooms = [];
+    this.lobbyError = null;
+    this.openRoomWaiting = false;
+    this.roomCreatePending = false;
+    this.joinPending = false;
+    this.joinFromLobby = false;
+    this.setDeckSelectorEnabled(true);
+    this.setTimeControlsEnabled(true);
 
     this.piecesReady = false;
     this.gameOver = false;
     this.mode = null;
+    this.myColor = null;
+    this.currentTurn = 'white';
+    this.roomId = null;
     this.state = null;
     this.moveHistory = [];
     this.selectedSquare = null;
@@ -963,6 +1336,7 @@ class ChessGame {
     this.gameGeneration++;
     this.stopClock();
     this.clock = null;
+    document.getElementById('game-status')?.classList.remove('flash');
     clearTimeout(this.statusTimer);
   }
 }

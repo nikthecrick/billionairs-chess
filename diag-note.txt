@@ -1,0 +1,1 @@
+run diagnostics with: nohup bash run-diag.sh

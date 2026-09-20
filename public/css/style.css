@@ -252,6 +252,116 @@ h1 {
   font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
 }
 
+.lobby-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.lobby-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.lobby-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  margin-bottom: 4px;
+}
+
+.lobby-sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+.lobby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 112px;
+}
+
+.lobby-room {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.lobby-room:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.lobby-room:active { transform: scale(0.98); }
+
+.lobby-room-main { min-width: 0; }
+
+.lobby-room-deck {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.lobby-room-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.lobby-room-meta span {
+  padding: 3px 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 100px;
+}
+
+.lobby-room-join {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  color: var(--text);
+}
+
+.lobby-empty {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.deck-options.disabled, .time-options.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 /* ─── DECK SELECTOR ────────────────────────────── */
 .deck-selector {
   margin-bottom: 24px;
